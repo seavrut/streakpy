@@ -3,6 +3,7 @@ A Python package for processing and analyzing TREX Streak camera data.
 
 Main functionality lies in =processing.py=. It works with a command line interface.
 
+** Usage
 #+BEGIN_SRC
 usage: python processing.py [-h] [-V] [-v] [-c] [-a] [-s] input
 
@@ -20,4 +21,69 @@ options:
 
 Other files are helper classes for storing and handling the data.
 =example.ini= is a template for an input configuration file to run processing.py with.
-Documentation for input config file parameters doesn't exist yet, but will at some point. At this point, safe to say that whatever is in =example.ini= is necessary to run =processing.py=.
+Documentation for input config file parameters doesn't exist yet, but will at some point.
+At this point, safe to say that whatever is in =example.ini= is necessary to run =processing.py=.
+
+** Explanation of functions
+*** calculate_edges
+This function runs edge detection.
+*** align_edges
+Aligns calculated edges such as to minimize error from the mean edge.
+**** Outputs
+- =misc/avg_edge.npy=
+- =misc/shifts.npy=
+- =misc/shifts.csv=
+- =misc/edgealignment.png= (if =edge.aligning.save_fig= is =True=)
+- =misc/onsettimeerror.png= (if =edge.aligning.save_fig= is =True=)
+*** sum_streaks
+Sums aligned streaks.
+**** Outputs
+- =misc/streaks.npy=
+- =misc/summed.npy=
+- =misc/summed.png= (if =streak.summing.save_fig= is =True=)
+
+** Explanation of config file parameters
+*** [paths]
+A collection of paths needed to run =processing.py=. Only =full= is
+required to exist beforehand. =edge=, =crop=, and =misc= will be created if they do not already exist.
+- =dir=: [path, optional] Main directory to store all data in.
+- =full=: [path] Directory with full raw data.
+- =edge=: [path] Directory where calculated edges are stored.
+- =crop=: [path] Directory where cropped and background-removed data are stored.
+- =misc=: [path] Directory for all other ouputs.
+
+*** [edge.finding]
+- =high_percentile_thresh=: [int or float]
+- =low_percentile_thresh=: [int or float]
+- =size_thresh=: [int or float]
+- =medfilt_kernel_size=: [int or tuple]
+- =degree=: [int]
+- =fine_pruning_thresh=: [int]
+- =fine_pruning_radius=: [int]
+- =simple_xmin=: [int]
+- =simple_xmax=: [int]
+
+*** [edge.aligning]
+- =align_x=: [int]
+- =simple_ythresh=: [int]
+- =simple_xthresh=: [int]
+- =show_fig=: [bool]
+- =save_fig=: [bool]
+
+*** [edge.aligning.weightparameters]
+- =mu1=: [float]
+- =sigma1=: [float]
+- =mu2=: [float, optional]
+- =sigma2=: [float, optional]
+- =amp2=: [float, optional]
+
+*** [background.processing]
+- =average_window_radius=: [int] When removing the background, each column will be subtracted the average value of a =100 x 2*average_window_radius= section from the top of the image, centered at that column. A larger value will follow larger scale structures in the background.
+- =crop_bounds=: [tuple] Pixel bounds to that full images will be cropped to before saving to =crop= path. Of the form (=xmin=, =ymin=, =xmax=, =ymax=).
+- =medfilt_kernel_size=: [int or tuple] Kernel for median filter applied to the image. It is recommended to use a horizontal kernel such as (1,5) to smooth in the energy axis (x) but not time (y).
+
+*** [streak.summing]
+- =num=: [int, optional] The number of files to sum from =crop= directory. Useful if you don't want to run the entire directory.
+- =streak_height=: [int]
+- =show_fig=: [bool] Whether to show the figure of all streaks summed.
+- =save_fig=: [bool] Whether to save the figure of all streaks summed.
