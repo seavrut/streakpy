@@ -19,16 +19,35 @@ options:
   -s, --sum_streaks     run sum_streaks
 #+END_SRC
 
-Other files are helper classes for storing and handling the data.
-=example.ini= is a template for an input configuration file to run processing.py with.
-Documentation for input config file parameters doesn't exist yet, but will at some point.
-At this point, safe to say that whatever is in =example.ini= is necessary to run =processing.py=.
+Other files are helper classes for storing and handling the data. =example.ini= is a template for an input configuration file to run processing.py with. Documentation for input config file parameters is a work in progress.
+
+#+begin_example
+How does this work?
+#+end_example
+
+#+begin_export
+Exporting what... exactly?
+#+end_export
+
+#+begin_quote
+This is a quote. -- Martin Luther
+#+end_quote
+
+#+begin_verse
+This is a verse???
+#+end_verse
+
+#+begin_src
+Okay and this is a source block like above.
+#+end_src
 
 ** Explanation of functions
 *** calculate_edges
-This function runs edge detection.
+This algorithm performs edge detection on images in the =full= directory to calculate the bottom edge of each streak in the dataset. First, each image is cropped, has its background gradient removed, and this is saved to the =crop= directory. Then a heavy median filter is applied, followed by a convolution with a horizontal Sobel operator. The resulting image is thresholded based on edge intensity and size, leaving only the most prominent and longest edges. The bottom edge is defined as the bottom-most index of a thresholded edge in each column. This edge goes through filtering to get rid of outliers and is then saved to the =edges= directory.
+**** Outputs
+- =edges/*.csv=
 *** align_edges
-Aligns calculated edges such as to minimize error from the mean edge.
+This algorithm aligns the calculated edges such as to minimize error from the mean edge. First all edges are roughly vertically aligned based on the polynomial fit at a given horizontal position. Then the mean edge is calculated. Then each edge is receives a vertical micro-shift such as to minimize the weighted error between itself and the mean edge. The error weigthts prioritize error minimization at the bright spots of the images, and are defined by a 1 or 2-Gaussian distribution.
 **** Outputs
 - =misc/avg_edge.npy=
 - =misc/shifts.npy=
@@ -36,27 +55,27 @@ Aligns calculated edges such as to minimize error from the mean edge.
 - =misc/edgealignment.png= (if =edge.aligning.save_fig= is =True=)
 - =misc/onsettimeerror.png= (if =edge.aligning.save_fig= is =True=)
 *** sum_streaks
-Sums aligned streaks.
+This algorithm sums the aligned streaks. Streaks that are too close to the top or bottom of the image are ignored. Before summing, a light median filter is applied to each streak. After summing, the collective line of maximum intensity is saved.
 **** Outputs
 - =misc/streaks.npy=
 - =misc/summed.npy=
 - =misc/summed.png= (if =streak.summing.save_fig= is =True=)
+- =misc/max_intensity_by_column.csv=
 
 ** Explanation of config file parameters
 *** [paths]
-A collection of paths needed to run =processing.py=. Only =full= is
-required to exist beforehand. =edge=, =crop=, and =misc= will be created if they do not already exist.
-- =dir=: [path, optional] Main directory to store all data in.
+A collection of paths needed to run =processing.py=. Only =full= is required to exist beforehand. =edge=, =crop=, and =misc= will be created if they do not already exist.
+- =dir=: [path, optional] Main directory to store all data in. Not used in any code, purely for ease of specifying =full=, =edge=, =crop=, and =misc=.
 - =full=: [path] Directory with full raw data.
 - =edge=: [path] Directory where calculated edges are stored.
 - =crop=: [path] Directory where cropped and background-removed data are stored.
 - =misc=: [path] Directory for all other ouputs.
 
 *** [edge.finding]
-- =high_percentile_thresh=: [int or float]
-- =low_percentile_thresh=: [int or float]
-- =size_thresh=: [int or float]
-- =medfilt_kernel_size=: [int or tuple]
+- =high_percentile_thresh=: [int or float] When thresholding by edge intensity, all points above this percentile will definitely be considered edges.
+- =low_percentile_thresh=: [int or float] When thresholding by edge intensity, all points below this percentile will edge not be considered edges.
+- =size_thresh=: [int or float] When thresholding by edge size, all edges less than this size will not be considered edges.
+- =medfilt_kernel_size=: [int or tuple] The kernel for a median filter applied to the image before edge finding. It is recommended that this be between 9 and 15.
 - =degree=: [int]
 - =fine_pruning_thresh=: [int]
 - =fine_pruning_radius=: [int]
