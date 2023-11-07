@@ -33,8 +33,8 @@ from typing import Union as U, Optional as O
 
 import rawccd, filters, edge
 
-def calculate_edges(high_percentile_thresh:int, low_percentile_thresh:int,
-        size_thresh:int, medfilt_kernel_size:int|tuple|list,
+def calculate_edges(high_percentile_thresh:int|float, low_percentile_thresh:int|float,
+        size_thresh:int|float, medfilt_kernel_size:int|tuple|list,
         degree:int, bkgrnd_window_radius:int,
         fine_pruning_thresh:int|float, fine_pruning_radius:int,
         simple_xmin:int|float, simple_xmax:int|float, crop_bounds:tuple|list,
@@ -90,6 +90,7 @@ def align_edges(align_x:int, degree:int,
                 simple_xmin:int, simple_xmax:int,
                 simple_xthresh:int|float, simple_ythresh:int|float,
                 weights_params:tuple|list,
+                px_to_ps:float,
                 edgepath:str, croppath:str, miscpath:str,
                 show_fig:bool=True, save_fig:bool=True, verbose:bool=False):
     
@@ -117,7 +118,7 @@ def align_edges(align_x:int, degree:int,
         return out
     
     def y_to_time(y):
-        return y*20*5.3/1000.0
+        return y*px_to_ps
     
     files = os.listdir(edgepath)
     try:
@@ -395,6 +396,8 @@ if __name__ == '__main__':
                 weight_params[3] = float(weight_params[3])
                 weight_params[4] = float(weight_params[4])
             
+            px_to_ps = float(config['axes.conversions'].get('px_to_ps', '0.13'))
+
             align_edges(align_x=config['edge.aligning'].getint('align_x'),
                         degree=config['edge.finding'].getint('degree'),
                         simple_xmin=config['edge.finding'].getint('simple_xmin'),
@@ -402,6 +405,7 @@ if __name__ == '__main__':
                         simple_xthresh=config['edge.aligning'].getfloat('simple_xthresh'),
                         simple_ythresh=config['edge.aligning'].getfloat('simple_ythresh'),
                         weights_params=weight_params,
+                        px_to_ps=px_to_ps,
                         edgepath=config['paths']['edge'],
                         croppath=config['paths']['crop'],
                         miscpath=config['paths']['misc'],
@@ -415,6 +419,8 @@ if __name__ == '__main__':
     if args.sum_streaks:
         print('\nRunning sum_streaks\n')
         try:
+            num = config['streak.summing']['num']
+            if num is not None: num = int(num)
             sum_streaks(crop_bounds=config['background.processing'].gettuple('crop_bounds'),
                         medfilt_kernel_size=config['background.processing'].gettuple('medfilt_kernel_size'),
                         shift_thresh=config['streak.summing'].getint('shift_thresh'),
@@ -422,7 +428,7 @@ if __name__ == '__main__':
                         edgepath=config['paths']['edge'],
                         miscpath=config['paths']['misc'],
                         croppath=config['paths']['crop'],
-                        num=config['streak.summing'].getint('num'),
+                        num=num,
                         show_fig=config['streak.summing'].getboolean('show_fig'),
                         save_fig=config['streak.summing'].getboolean('save_fig'),
                         verbose=args.verbose)

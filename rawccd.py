@@ -203,7 +203,7 @@ class Trex(RawCCD):
         self.streaks.append(streak.TrexStreak(self, bounds, raw, y_edge_shift))
         return self.streaks[-1]
     
-    def detect_bottom_edge(self, high_percentile_thresh, low_percentile_thresh, size_thresh,
+    def detect_bottom_edge(self, high_percentile_thresh:int|float, low_percentile_thresh:int|float, size_thresh:int|float,
                             degree:int=1, border_width:int=10, simple_xmin=None, simple_xmax=None,
                             fine_pruning_thresh:int|float=50, fine_pruding_radius=50):
         '''detect edges of streak
