@@ -19,27 +19,7 @@ options:
   -s, --sum_streaks     run sum_streaks
 #+END_SRC
 
-Other files are helper classes for storing and handling the data. =example.ini= is a template for an input configuration file to run processing.py with. Documentation for input config file parameters is a work in progress.
-
-#+begin_example
-How does this work?
-#+end_example
-
-#+begin_export
-Exporting what... exactly?
-#+end_export
-
-#+begin_quote
-This is a quote. -- Martin Luther
-#+end_quote
-
-#+begin_verse
-This is a verse???
-#+end_verse
-
-#+begin_src
-Okay and this is a source block like above.
-#+end_src
+Other files are helper classes for storing and handling the data. =example.ini= is a template for an input configuration file to run processing.py with.
 
 ** Explanation of functions
 *** calculate_edges
@@ -72,29 +52,29 @@ A collection of paths needed to run =processing.py=. Only =full= is required to 
 - =misc=: [path] Directory for all other ouputs.
 
 *** [edge.finding]
-- =high_percentile_thresh=: [int or float] When thresholding by edge intensity, all points above this percentile will definitely be considered edges.
+- =high_percentile_thresh=: [int or float] When thresholding by edge intensity, all points above this percentile will be considered edges.
 - =low_percentile_thresh=: [int or float] When thresholding by edge intensity, all points below this percentile will edge not be considered edges.
-- =size_thresh=: [int or float] When thresholding by edge size, all edges less than this size will not be considered edges.
+- =size_thresh=: [int or float] When thresholding by edge size, all edges less than this size will not be ignored.
 - =medfilt_kernel_size=: [int or tuple] The kernel for a median filter applied to the image before edge finding. It is recommended that this be between 9 and 15.
-- =degree=: [int]
-- =fine_pruning_thresh=: [int]
-- =fine_pruning_radius=: [int]
-- =simple_xmin=: [int]
-- =simple_xmax=: [int]
+- =degree=: [int] The degree of the polynomial that the edge will be fit to.
+- =fine_pruning_radius=: [int] For each point along the edge, the median edge y position is calculated for points in a window with radius =fine_pruning_radius= to the left and right. This point will be considered an outlier and will be pruned if it further from the median in value than the treshold.
+- =fine_pruning_thresh=: [int] The pruning threshold for outliers within an moving window along the edge.
+- =simple_xmin=: [int] Points further left than this threshold will be pruned from the edge.
+- =simple_xmax=: [int] Points further right than this threshold will be pruned from the edge.
 
 *** [edge.aligning]
-- =align_x=: [int]
-- =simple_ythresh=: [int]
-- =simple_xthresh=: [int]
-- =show_fig=: [bool]
-- =save_fig=: [bool]
+- =align_x=: [int] All streaks within a dataset will first be roughtly aligned based on the polynomial fit to the edge at this x position.
+- =simple_ythresh=: [int] Points along an edge pre-alignment will be pruned if they are further from the vertical median value than this threshold.
+- =simple_xthresh=: [int] Points along an edge pre-alignment will be pruned if they are further from the horizontal median value than this threshold.
+- =show_fig=: [bool] Whether to show the figures of the edge alignment and error.
+- =save_fig=: [bool] Whether to save the figures of the edge alignment and error.
 
 *** [edge.aligning.weightparameters]
-- =mu1=: [float]
-- =sigma1=: [float]
-- =mu2=: [float, optional]
-- =sigma2=: [float, optional]
-- =amp2=: [float, optional]
+- =mu1=: [float] center of Gaussian weighting w line edge
+- =sigma1=: [float] spread of Gaussian weighting w line edge
+- =mu2=: [float, optional] center of Gaussian weighting a line edge
+- =sigma2=: [float, optional] spread of Gaussian weighting a line edge
+- =amp2=: [float, optional] relative amplitude of Gaussian weighting a line edge
 
 *** [background.processing]
 - =average_window_radius=: [int] When removing the background, each column will be subtracted the average value of a =100 x 2*average_window_radius= section from the top of the image, centered at that column. A larger value will follow larger scale structures in the background.
