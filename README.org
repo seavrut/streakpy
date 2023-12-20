@@ -3,6 +3,8 @@ A Python package for processing and analyzing TREX Streak camera data.
 
 Main functionality lies in =processing.py=. It works with a command line interface and an input configuration deck.
 
+I am sharing this code as a reference, but the current version (as of Dec 20 2023) on github is buggy and not up to date.
+
 ** Usage
 #+BEGIN_SRC
 usage: python processing.py [-h] [-V] [-v] [-c] [-a] [-s] [-d] input
@@ -27,6 +29,7 @@ Other files are helper classes for storing and handling the data. =example.ini= 
 - TODO implement alternative alignment algorithm which straigtens images first then aligns them
 - TODO update documentation on dewarping 
 - TODO improve efficiency of calculate_edges by minimizing multiple passes over the same image and possibly introducing threading to process multiple images at once?
+- TODO write tests
 
 ** Explanation of functions
 *** calculate_edges
