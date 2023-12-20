@@ -1,11 +1,11 @@
 * streakpy
 A Python package for processing and analyzing TREX Streak camera data. 
 
-Main functionality lies in =processing.py=. It works with a command line interface.
+Main functionality lies in =processing.py=. It works with a command line interface and an input configuration deck.
 
 ** Usage
 #+BEGIN_SRC
-usage: python processing.py [-h] [-V] [-v] [-c] [-a] [-s] input
+usage: python processing.py [-h] [-V] [-v] [-c] [-a] [-s] [-d] input
 
 positional arguments:
   input                 filepath to .ini file for configuration of inputs
@@ -17,9 +17,16 @@ options:
   -c, --calculate_edges run calculate_edges
   -a, --align_edges     run align_edges
   -s, --sum_streaks     run sum_streaks
+  -d, --dewarp_streaks  run dewarp_streaks
 #+END_SRC
 
 Other files are helper classes for storing and handling the data. =example.ini= is a template for an input configuration file to run processing.py with.
+
+** To do
+- TODO implement choice for different background removal algorithms (rolling ball/average of the dataset)
+- TODO implement alternative alignment algorithm which straigtens images first then aligns them
+- TODO update documentation on dewarping 
+- TODO improve efficiency of calculate_edges by minimizing multiple passes over the same image and possibly introducing threading to process multiple images at once?
 
 ** Explanation of functions
 *** calculate_edges
@@ -40,7 +47,13 @@ This algorithm sums the aligned streaks. Streaks that are too close to the top o
 - =misc/streaks.npy=
 - =misc/summed.npy=
 - =misc/summed.png= (if =streak.summing.save_fig= is =True=)
-- =misc/max_intensity_by_column.csv=
+- =misc/max_intensity.npy=
+- =misc/max_intensity_width.npy=
+*** dewarp_streaks
+This algorithm dewarps/straightens streaks according to a provided warp curve located at =warp=. The warp curve axes units should be in pixels and should already be aligned with the image. A strip of constant height is isolated along the curve (plus a constant offset) and saved to a new array as the straightened streak.
+**** Outputs
+- =misc/streaks_straightened.npy=
+- =dewarped/=
 
 ** Explanation of config file parameters
 *** [paths]
@@ -50,6 +63,8 @@ A collection of paths needed to run =processing.py=. Only =full= is required to 
 - =edge=: [path] Directory where calculated edges are stored.
 - =crop=: [path] Directory where cropped and background-removed data are stored.
 - =misc=: [path] Directory for all other ouputs.
+- =warp=: [path] 2 column .npy or .csv file giving x and y coordinates of warp curve along which to dewarp streaks. Only needed if running =dewarp_streaks=.
+- =dewarp=: [path] Directory where dewarped streaks are stored. Only needed if running =dewarp_streaks=.
 
 *** [edge.finding]
 - =high_percentile_thresh=: [int or float] When thresholding by edge intensity, all points above this percentile will be considered edges.
@@ -64,6 +79,7 @@ A collection of paths needed to run =processing.py=. Only =full= is required to 
 
 *** [edge.aligning]
 - =align_x=: [int] All streaks within a dataset will first be roughtly aligned based on the polynomial fit to the edge at this x position.
+- =align_y=: [int] Individual image shifts for vertical alignment are calculated in relation to this y value. 
 - =simple_ythresh=: [int] Points along an edge pre-alignment will be pruned if they are further from the vertical median value than this threshold.
 - =simple_xthresh=: [int] Points along an edge pre-alignment will be pruned if they are further from the horizontal median value than this threshold.
 - =show_fig=: [bool] Whether to show the figures of the edge alignment and error.
@@ -79,10 +95,19 @@ A collection of paths needed to run =processing.py=. Only =full= is required to 
 *** [background.processing]
 - =average_window_radius=: [int] When removing the background, each column will be subtracted the average value of a =100 x 2*average_window_radius= section from the top of the image, centered at that column. A larger value will follow larger scale structures in the background.
 - =crop_bounds=: [tuple] Pixel bounds to that full images will be cropped to before saving to =crop= path. Of the form (=xmin=, =ymin=, =xmax=, =ymax=).
-- =medfilt_kernel_size=: [int or tuple] Kernel for median filter applied to the image. It is recommended to use a horizontal kernel such as (1,5) to smooth in the energy axis (x) but not time (y).
+- =medfilt_kernel_size=: [int or tuple] Kernel for median filter applied to the image.
 
 *** [streak.summing]
 - =num=: [int, optional] The number of files to sum from =crop= directory. Useful if you don't want to run the entire directory.
-- =streak_height=: [int]
+- =streak_height=: [int] The pixel height of the frame around the streaks.
+- =balance=: [float, optional] The panning balance of the aligned streaks with relation to =align_y=. Should be between 0 and 1, and if not specified, will default to 0.5. A higher value means the streak will sit relatively higher in the frame (there is more padding at the bottom).
 - =show_fig=: [bool] Whether to show the figure of all streaks summed.
 - =save_fig=: [bool] Whether to save the figure of all streaks summed.
+
+*** [streak.dewarping]
+- =strip_height=: [int] The pixel height of the dewarped streaks.
+- =y_offset=: [int] The vertical offset of the dewarped streaks with relation to the warp curve. It is recommended that this value be positive because the warp curve will roughly go through the center of the streaks.
+
+*** [axes.conversion]
+- =px_to_ps=: [float, optional] Conversion factor for vertical axis to time.
+- =px_to_eV=: [float, optional] Conversion factor for horizontal axis to energy.
