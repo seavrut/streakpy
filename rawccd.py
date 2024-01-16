@@ -19,7 +19,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from typing import Union as U, Optional as O
 
-import streak, filters, edge
+import filters, edge
 
 plt.rcParams['text.usetex'] = True
 plt.rcParams['font.size'] = 6
@@ -30,8 +30,8 @@ class RawCCD:
         try:
             with Image.open(filepath) as im:
                 im.seek(index) # if filepath is a multipage .tif this will navigate to page i
-                self._data = np.array(im)
-                self._unfiltered_data = self.data
+                self._data = np.array(im, dtype=np.float64)
+                self._unfiltered_data = self.data.copy()
                 self._verbose = verbose
                 if verbose: print('Loaded page %d of %s' % (index, filepath))
                 self._filename = filepath
@@ -168,15 +168,11 @@ class RawCCD:
         self._data = self.data[ymin:ymax, xmin:xmax]
         if raw:
             self._unfiltered_data = self.unfiltered_data[ymin:ymax, xmin:xmax]
-
-    def define_streak(self, bounds, raw=False) -> streak.Streak:
-        self.streaks.append(streak.Streak(self, bounds, raw))
-        return self.streaks[-1]
     
-    def filter_image(self, filtfunc, *args, **kwargs):
+    def filter_image(self, filtfunc, *args, **kwargs) -> None:
         self._data = filtfunc(self.data, *args, **kwargs)
 
-    def shift_image(self, shift, raw=False, *args):
+    def shift_image(self, shift, raw=False, *args) -> None:
         '''Shift the image using scipy.ndimage.shift
 
         shift: sequence specifying shift in each axis'''
@@ -184,24 +180,24 @@ class RawCCD:
         if raw:
             self._unfiltered_data = ndimage.shift(self.unfiltered_data, shift, *args)
 
+    def lineout(self, bounds=None, raw=False):
+        if bounds is None:
+            bounds = (0, 0, self.width, self.height)
+        if raw:
+            return np.mean(self.unfiltered_data[bounds[1]:bounds[3], bounds[0]:bounds[2]], axis=0)
+        return np.mean(self.data[bounds[1]:bounds[3], bounds[0]:bounds[2]], axis=0)
+
 
 class ThreeCrystal(RawCCD):
     def __init__(self, filepath:str, index:int = 0, verbose=True) -> None:
         super().__init__(filepath, index, verbose)
         self.rotate(90, True, True)
 
-    def define_streak(self, bounds, raw=True) -> streak.ThreeCrystalStreak:
-        self.streaks.append(streak.ThreeCrystalStreak(self, bounds, raw))
-        return self.streaks[-1]
 
 class Trex(RawCCD):
     def __init__(self, filepath:str, index:int=0, verbose=True) -> None:
         super().__init__(filepath, index, verbose)
         self.rotate(180, True, True)
-
-    def define_streak(self, bounds, raw=True, y_edge_shift=0) -> streak.TrexStreak:
-        self.streaks.append(streak.TrexStreak(self, bounds, raw, y_edge_shift))
-        return self.streaks[-1]
     
     def detect_bottom_edge(self, high_percentile_thresh:int|float, low_percentile_thresh:int|float, size_thresh:int|float,
                             degree:int=1, border_width:int=10, simple_xmin=None, simple_xmax=None,
@@ -221,7 +217,7 @@ class Trex(RawCCD):
         threshold2 = np.percentile(workingdata, low_percentile_thresh)
 
         edges = np.ones_like(workingdata) * 0.5
-        edges = np.where(workingdata > threshold1, 1.0, edges)
+        edges = np.where(workingdata >= threshold1, 1.0, edges)
         edges = np.where(workingdata < threshold2, 0.0, edges)
         for i, row in enumerate(edges[1:-1]):
             for j, col in enumerate(row[1:-1]): # avoiding the edges for indexing reasons
@@ -238,10 +234,11 @@ class Trex(RawCCD):
         mask_border[border_width:-border_width, border_width:-border_width] = 0
         mask_border = mask_border.astype(bool)
         edges[mask_border] = 0
-
-        labeled_edges, num_labels = ndimage.label(edges)
+        
+        labeled_edges, num_labels = ndimage.label(edges) # type: ignore
         sizes = ndimage.sum(edges, labeled_edges, range(num_labels + 1))
-        mask_size = sizes < size_thresh
+        threshold3 = np.percentile(sizes, size_thresh)
+        mask_size = sizes < threshold3
         labeled_edges[mask_size[labeled_edges]] = 0
         labeled_edges = np.clip(labeled_edges, 0, 1)
 
@@ -251,11 +248,11 @@ class Trex(RawCCD):
             if len(mask) > 0:
                 index = mask.T[0][-1]
                 bottom_edge_arr[i] = index
+                labeled_edges[index, i] = 2
 
         temp = edge.Edge(np.arange(self.width), bottom_edge_arr, degree=degree, simple_xmin=simple_xmin, simple_xmax=simple_xmax)
-
+        temp.fine_pruning(fine_pruning_thresh, fine_pruding_radius)
         if temp.exists:
-            temp.fine_pruning(fine_pruning_thresh, fine_pruding_radius)
             self.bottom_edge = temp
             return self.bottom_edge
         else:
@@ -279,4 +276,4 @@ class Trex(RawCCD):
             warn(message, RuntimeWarning)
             raise RuntimeError(message)
         return bounds, y - top_pad
-        
+    

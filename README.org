@@ -15,7 +15,7 @@ positional arguments:
 options:
   -h, --help            show this help message and exit
   -V, --version         show program's version number and exit
-  -v, --verbosee        print all output
+  -v, --verbose         print all output
   -c, --calculate_edges run calculate_edges
   -a, --align_edges     run align_edges
   -s, --sum_streaks     run sum_streaks
@@ -24,12 +24,14 @@ options:
 
 Other files are helper classes for storing and handling the data. =example.ini= is a template for an input configuration file to run processing.py with.
 
-** To do
+** Things to do
 - TODO implement choice for different background removal algorithms (rolling ball/average of the dataset)
 - TODO implement alternative alignment algorithm which straigtens images first then aligns them
 - TODO update documentation on dewarping 
 - TODO improve efficiency of calculate_edges by minimizing multiple passes over the same image and possibly introducing threading to process multiple images at once?
 - TODO write tests
+- TODO update requirements
+- TODO find a way to deal with outside parameters like the warp curve
 
 ** Explanation of functions
 *** calculate_edges

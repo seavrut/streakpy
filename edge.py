@@ -18,10 +18,10 @@ class Edge:
         self._x = xarr
         self._y = yarr
         self.degree = degree
-        self.exists = len(self.y) > 10
+        self.exists = len(self.y) > 10 and self.ymedian > 175
         if self.exists:
             self.simple_pruning(simple_ythresh, simple_xthresh, simple_xmin, simple_xmax)
-            self.coeffs = np.polyfit(self.x, self.y, self.degree)
+            #self.coeffs = np.polyfit(self.x, self.y, self.degree)
 
     @property
     def y(self):
@@ -65,7 +65,9 @@ class Edge:
         if xmax is not None:
             self._y[self._x > xmax] = 0
 
-        self.coeffs = np.polyfit(self.x, self.y, self.degree)
+        self.exists = len(self.y) > 10 and self.ymedian > 175
+        if self.exists:
+            self.coeffs = np.polyfit(self.x, self.y, self.degree)
 
     def fine_pruning(self, ythresh, window_radius):
         '''for each array value, prune the value if it is an outlier in a window around it'''
@@ -83,6 +85,9 @@ class Edge:
                     # prune the value
                     pruning_indices.append(i)
         self._y[pruning_indices] = 0
+        self.exists = len(self.y) > 10 and self.ymedian > 175
+        if self.exists:
+            self.coeffs = np.polyfit(self.x, self.y, self.degree)
 
     def shift(self, yshift):
         for i, value in enumerate(self._y):
